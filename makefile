@@ -1,45 +1,45 @@
+
+# Compiler and flags
 CC = gcc
 CFLAGS = -Iinclude -fPIC
+AR = ar rcs
+
+# Paths
 SRC = src/main.c src/mystrfunctions.c src/myfilefunctions.c
 OBJ = obj/main.o obj/mystrfunctions.o obj/myfilefunctions.o
+UTIL_OBJ = obj/mystrfunctions.o obj/myfilefunctions.o
+
 STATIC_LIB = lib/libmyutils.a
 DYNAMIC_LIB = lib/libmyutils.so
+
 TARGET_STATIC = bin/client_static
 TARGET_DYNAMIC = bin/client_dynamic
 
-all: $(TARGET_DYNAMIC)
+# Default: build both executables
+all: $(TARGET_STATIC) $(TARGET_DYNAMIC)
 
+# Pattern rule: compile any .c to .o
 obj/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(DYNAMIC_LIB): obj/mystrfunctions.o obj/myfilefunctions.o
-	$(CC) -shared -o $@ $^
+# Build static library
+$(STATIC_LIB): $(UTIL_OBJ)
+	$(AR) $(STATIC_LIB) $(UTIL_OBJ)
 
+# Build dynamic library
+$(DYNAMIC_LIB): $(UTIL_OBJ)
+	$(CC) -shared -o $@ $(UTIL_OBJ)
+
+# Link static executable
+$(TARGET_STATIC): obj/main.o $(STATIC_LIB)
+	$(CC) -o $@ obj/main.o -Llib -lmyutils
+
+# Link dynamic executable
 $(TARGET_DYNAMIC): obj/main.o $(DYNAMIC_LIB)
 	$(CC) -o $@ obj/main.o -Llib -lmyutils
 
+# Clean all build files
 clean:
 	rm -f obj/*.o bin/* lib/*.a lib/*.so
-CC = gcc
-CFLAGS = -Iinclude
-AR = ar rcs
-TARGET = bin/client_static
-LIB = lib/libmyutils.a
-OBJECTS = obj/main.o
-UTIL_OBJECTS = obj/mystrfunctions.o obj/myfilefunctions.o
 
-all: $(TARGET)
-
-# Build executable by linking main.o with static library
-$(TARGET): $(OBJECTS) $(LIB)
-	$(CC) -o $(TARGET) $(OBJECTS) -Llib -lmyutils
-
-# Build static library
-$(LIB): $(UTIL_OBJECTS)
-	$(AR) $(LIB) $(UTIL_OBJECTS)
-
-obj/%.o: src/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-clean:
-	rm -f obj/*.o bin/* lib/*.a
+.PHONY: all clean
